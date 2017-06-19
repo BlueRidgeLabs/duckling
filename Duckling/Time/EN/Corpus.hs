@@ -756,6 +756,10 @@ allExamples = concat
              , "at 5pm tomorrow"
              , "tomorrow at 5pm"
              ]
+  , examples (datetimeInterval ((2013, 2, 13, 12, 0, 0), (2013, 2, 13, 19, 0, 0)) Hour)
+             [ "tomorrow afternoon"
+             , "tomorrow afternoonish"
+             ]
   , examples (datetimeInterval ((2013, 2, 13, 13, 0, 0), (2013, 2, 13, 15, 0, 0)) Hour)
              [ "1pm-2pm tomorrow"
              ]
@@ -780,5 +784,14 @@ allExamples = concat
     -- yes, the result is in the past, we may need to revisit
              [ "at 4:23"
              , "4:23am"
+             ]
+  , examples (datetimeInterval ((2013, 3, 1, 0, 0, 0), (2013, 3, 11, 0, 0, 0)) Day)
+             [ "early March"
+             ]
+  , examples (datetimeInterval ((2013, 3, 11, 0, 0, 0), (2013, 3, 21, 0, 0, 0)) Day)
+             [ "mid March"
+             ]
+  , examples (datetimeInterval ((2013, 3, 21, 0, 0, 0), (2013, 4, 1, 0, 0, 0)) Day)
+             [ "late March"
              ]
   ]

@@ -721,7 +721,9 @@ ruleNoonMidnightEOD = Rule
 rulePartOfDays :: Rule
 rulePartOfDays = Rule
   { name = "part of days"
-  , pattern = [regex "(morning|after ?noo?n|evening|night|(at )?lunch)"]
+  , pattern =
+    [ regex "(morning|after ?noo?n(ish)?|evening|night|(at )?lunch)"
+    ]
   , prod = \tokens -> case tokens of
       (Token RegexMatch (GroupMatch (match:_)):_) -> do
         let (start, end) = case Text.toLower match of
@@ -1131,6 +1133,28 @@ ruleMonths = zipWith go months [1..12]
       , pattern = [regex regexPattern]
       , prod = \_ -> tt $ month i
       }
+
+rulePartOfMonth :: Rule
+rulePartOfMonth = Rule
+  { name = "part of <named-month>"
+  , pattern =
+    [ regex "(early|mid|late)-?( of)?"
+    , Predicate isAMonth
+    ]
+  , prod = \tokens -> case tokens of
+      (Token RegexMatch (GroupMatch (match:_)):Token Time td:_) -> do
+        (sd, ed) <- case Text.toLower match of
+          "early" -> Just (1, 10)
+          "mid"   -> Just (11, 20)
+          "late"  -> Just (21, -1)
+          _       -> Nothing
+        start <- intersect td $ dayOfMonth sd
+        end <- if ed /= -1
+          then intersect td $ dayOfMonth ed
+          else Just $ cycleLastOf TG.Day td
+        Token Time <$> interval TTime.Open start end
+      _ -> Nothing
+  }
 
 usHolidays :: [(Text, String, Int, Int)]
 usHolidays =
@@ -1591,6 +1615,7 @@ rules =
   , ruleDurationAfterBeforeTime
   , ruleInNumeral
   , ruleTimezone
+  , rulePartOfMonth
   ]
   ++ ruleInstants
   ++ ruleDaysOfWeek
