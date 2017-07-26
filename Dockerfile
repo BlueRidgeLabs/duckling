@@ -12,4 +12,6 @@ RUN apt-get install libpcre3 libpcre3-dev
 
 RUN stack build
 
+EXPOSE 8000
+
 ENTRYPOINT stack exec duckling-example-exe
