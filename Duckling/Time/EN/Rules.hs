@@ -16,22 +16,22 @@ module Duckling.Time.EN.Rules
 import Control.Monad (liftM2)
 import Data.Maybe
 import Data.Text (Text)
-import qualified Data.Text as Text
 import Prelude
+import qualified Data.Text as Text
 
 import Duckling.Dimensions.Types
 import Duckling.Duration.Helpers (duration)
 import Duckling.Numeral.Helpers (parseInt)
 import Duckling.Numeral.Types (NumeralData (..))
-import qualified Duckling.Numeral.Types as TNumeral
 import Duckling.Ordinal.Types (OrdinalData (..))
-import qualified Duckling.Ordinal.Types as TOrdinal
 import Duckling.Regex.Types
 import Duckling.Time.Helpers
 import Duckling.Time.Types (TimeData (..))
+import Duckling.Types
+import qualified Duckling.Numeral.Types as TNumeral
+import qualified Duckling.Ordinal.Types as TOrdinal
 import qualified Duckling.Time.Types as TTime
 import qualified Duckling.TimeGrain.Types as TG
-import Duckling.Types
 
 ruleIntersect :: Rule
 ruleIntersect = Rule
@@ -142,7 +142,7 @@ ruleThisTime = Rule
   { name = "this <time>"
   , pattern =
     [ regex "this|current|coming"
-    , dimension Time
+    , Predicate isNotLatent
     ]
   , prod = \tokens -> case tokens of
       (_:Token Time td:_) -> tt $ predNth 0 False td
@@ -166,10 +166,22 @@ ruleLastTime = Rule
   { name = "last <time>"
   , pattern =
     [ regex "(this past|last|previous)"
-    , dimension Time
+    , Predicate isNotLatent
     ]
   , prod = \tokens -> case tokens of
       (_:Token Time td:_) -> tt $ predNth (- 1) False td
+      _ -> Nothing
+  }
+
+ruleLastWeekendOfMonth :: Rule
+ruleLastWeekendOfMonth = Rule
+  { name = "last weekend of <named-month>"
+  , pattern =
+    [ regex "last\\s(week(\\s|-)?end|wkend)\\s(of|in)"
+    , Predicate isAMonth
+    ]
+  , prod = \tokens -> case tokens of
+      (_:Token Time td2:_) -> tt $ predLastOf weekend td2
       _ -> Nothing
   }
 
@@ -435,7 +447,9 @@ ruleIdesOfMonth = Rule
 ruleTODLatent :: Rule
 ruleTODLatent = Rule
   { name = "time-of-day (latent)"
-  , pattern = [Predicate $ isIntegerBetween 0 23]
+  , pattern =
+    [ Predicate $ liftM2 (&&) isNumeralSafeToUse (isIntegerBetween 0 23)
+    ]
   , prod = \tokens -> case tokens of
       (token:_) -> do
         n <- getIntValue token
@@ -669,6 +683,20 @@ ruleHalfHOD = Rule
       _ -> Nothing
   }
 
+ruleMMYYYY :: Rule
+ruleMMYYYY = Rule
+  { name = "mm/yyyy"
+  , pattern =
+    [ regex "(0?[1-9]|1[0-2])[/-](\\d{4})"
+    ]
+  , prod = \tokens -> case tokens of
+      (Token RegexMatch (GroupMatch (mm:yy:_)):_) -> do
+        y <- parseInt yy
+        m <- parseInt mm
+        tt $ yearMonthDay y m 1
+      _ -> Nothing
+  }
+
 ruleMMDDYYYY :: Rule
 ruleMMDDYYYY = Rule
   { name = "mm/dd/yyyy"
@@ -699,7 +727,7 @@ ruleYYYYMMDD = Rule
 ruleMMDD :: Rule
 ruleMMDD = Rule
   { name = "mm/dd"
-  , pattern = [regex "(0?[1-9]|1[0-2])\\s?/\\s?(3[01]|[12]\\d|0?[1-9])"]
+  , pattern = [regex "(0?[1-9]|1[0-2])\\s?[/-]\\s?(3[01]|[12]\\d|0?[1-9])"]
   , prod = \tokens -> case tokens of
       (Token RegexMatch (GroupMatch (mm:dd:_)):_) -> do
         m <- parseInt mm
@@ -831,11 +859,10 @@ rulePODofTime = Rule
 ruleWeekend :: Rule
 ruleWeekend = Rule
   { name = "week-end"
-  , pattern = [regex "(week(\\s|-)?end|wkend)"]
-  , prod = \_ -> do
-      fri <- intersect (dayOfWeek 5) (hour False 18)
-      mon <- intersect (dayOfWeek 1) (hour False 0)
-      Token Time <$> interval TTime.Open fri mon
+  , pattern =
+    [ regex "(week(\\s|-)?end|wkend)"
+    ]
+  , prod = \_ -> tt weekend
   }
 
 ruleSeasons :: Rule
@@ -897,11 +924,36 @@ ruleIntervalMonthDDDD = Rule
     , regex "(3[01]|[12]\\d|0?[1-9])"
     ]
   , prod = \tokens -> case tokens of
-      ( Token Time td
-       :Token RegexMatch (GroupMatch (d1:_))
-       :_
-       :Token RegexMatch (GroupMatch (d2:_))
-       :_) -> do
+      (Token Time td:
+       Token RegexMatch (GroupMatch (d1:_)):
+       _:
+       Token RegexMatch (GroupMatch (d2:_)):
+       _) -> do
+        dd1 <- parseInt d1
+        dd2 <- parseInt d2
+        dom1 <- intersect (dayOfMonth dd1) td
+        dom2 <- intersect (dayOfMonth dd2) td
+        Token Time <$> interval TTime.Closed dom1 dom2
+      _ -> Nothing
+  }
+
+ruleIntervalFromMonthDDDD :: Rule
+ruleIntervalFromMonthDDDD = Rule
+  { name = "from <month> dd-dd (interval)"
+  , pattern =
+    [ regex "from"
+    , Predicate isAMonth
+    , regex "(3[01]|[12]\\d|0?[1-9])"
+    , regex "\\-|to|th?ru|through|(un)?til(l)?"
+    , regex "(3[01]|[12]\\d|0?[1-9])"
+    ]
+  , prod = \tokens -> case tokens of
+      (_:
+       Token Time td:
+       Token RegexMatch (GroupMatch (d1:_)):
+       _:
+       Token RegexMatch (GroupMatch (d2:_)):
+       _) -> do
         dd1 <- parseInt d1
         dd2 <- parseInt d2
         dom1 <- intersect (dayOfMonth dd1) td
@@ -1532,6 +1584,7 @@ rules =
   , ruleTimeBeforeLastAfterNext
   , ruleLastDOWOfTime
   , ruleLastCycleOfTime
+  , ruleLastWeekendOfMonth
   , ruleNthTimeOfTime
   , ruleTheNthTimeOfTime
   , ruleNthTimeAfterTime
@@ -1569,6 +1622,7 @@ rules =
   , ruleMMDDYYYY
   , ruleYYYYMMDD
   , ruleMMDD
+  , ruleMMYYYY
   , ruleNoonMidnightEOD
   , rulePartOfDays
   , ruleEarlyMorning
@@ -1582,6 +1636,7 @@ rules =
   , ruleSeasons
   , ruleTODPrecision
   , rulePrecisionTOD
+  , ruleIntervalFromMonthDDDD
   , ruleIntervalMonthDDDD
   , ruleIntervalDash
   , ruleIntervalFrom
