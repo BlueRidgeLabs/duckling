@@ -30,7 +30,7 @@ The first time you run it, it will download all required packages.
 
 This runs a basic HTTP server. Example request:
 ```
-$ curl -XPOST http://0.0.0.0:8000/parse --data 'text=tomorrow at eight'
+$ curl -XPOST http://0.0.0.0:8000/parse --data 'lang=en&text=tomorrow at eight'
 ```
 
 See `exe/ExampleMain.hs` for an example on how to integrate Duckling in your
@@ -68,6 +68,11 @@ To extend Duckling's support for a dimension in a given language, typically 2
 files need to be updated:
 * `Duckling/<dimension>/<language>/Rules.hs`
 * `Duckling/<dimension>/<language>/Corpus.hs`
+
+To add a new language:
+* Make sure that the language code used follows the [ISO-639-1 standard](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
+* The first dimension to implement is `Numeral`.
+* Follow [this example](https://github.com/facebookincubator/duckling/commit/24d3f199768be970149412c95b1c1bf5d76f8240).
 
 Rules have a name, a pattern and a production.
 Patterns are used to perform character-level matching (regexes on input) and

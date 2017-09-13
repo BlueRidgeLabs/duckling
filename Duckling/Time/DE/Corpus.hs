@@ -13,15 +13,15 @@ module Duckling.Time.DE.Corpus
   , negativeCorpus
   ) where
 
-import Prelude
 import Data.String
+import Prelude
 
 import Duckling.Lang
 import Duckling.Resolve
+import Duckling.Testing.Types hiding (examples)
 import Duckling.Time.Corpus
 import Duckling.Time.Types hiding (Month)
 import Duckling.TimeGrain.Types hiding (add)
-import Duckling.Testing.Types hiding (examples)
 
 corpus :: Corpus
 corpus = (testContext {lang = DE}, allExamples)
@@ -32,6 +32,7 @@ negativeCorpus = (testContext {lang = DE}, examples)
     examples =
       [ "ein Hotel"
       , "ein Angebot"
+      , "nächsten 5"
       ]
 
 allExamples :: [Example]
@@ -306,7 +307,7 @@ allExamples = concat
              [ "viertel vor 12"
              , "11:45"
              ]
-  , examples (datetime (2013, 2, 12, 11, 45, 0) Second)
+  , examples (datetime (2013, 2, 12, 11, 45, 0) Minute)
              [ "15 minuten vor 12"
              ]
   , examples (datetime (2013, 2, 12, 20, 0, 0) Hour)
@@ -403,7 +404,7 @@ allExamples = concat
   , examples (datetime (2013, 2, 19, 4, 0, 0) Hour)
              [ "in 7 tagen"
              ]
-  , examples (datetime (2013, 12, 0, 0, 0, 0) Month)
+  , examples (datetime (2013, 12, 25, 0, 0, 0) Day)
              [ "ein jahr nach weihnachten"
              ]
   , examples (datetimeInterval ((2013, 6, 21, 0, 0, 0), (2013, 9, 24, 0, 0, 0)) Day)

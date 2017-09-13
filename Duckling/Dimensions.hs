@@ -21,6 +21,7 @@ import qualified Data.HashSet as HashSet
 import Duckling.Dimensions.Types
 import qualified Duckling.Dimensions.Common as CommonDimensions
 import qualified Duckling.Dimensions.AR as ARDimensions
+import qualified Duckling.Dimensions.BG as BGDimensions
 import qualified Duckling.Dimensions.CS as CSDimensions
 import qualified Duckling.Dimensions.DA as DADimensions
 import qualified Duckling.Dimensions.DE as DEDimensions
@@ -31,9 +32,11 @@ import qualified Duckling.Dimensions.FR as FRDimensions
 import qualified Duckling.Dimensions.GA as GADimensions
 import qualified Duckling.Dimensions.HE as HEDimensions
 import qualified Duckling.Dimensions.HR as HRDimensions
+import qualified Duckling.Dimensions.HU as HUDimensions
 import qualified Duckling.Dimensions.ID as IDDimensions
 import qualified Duckling.Dimensions.IT as ITDimensions
 import qualified Duckling.Dimensions.JA as JADimensions
+import qualified Duckling.Dimensions.KA as KADimensions
 import qualified Duckling.Dimensions.KO as KODimensions
 import qualified Duckling.Dimensions.MY as MYDimensions
 import qualified Duckling.Dimensions.NB as NBDimensions
@@ -78,6 +81,7 @@ dependents (This Volume) = HashSet.singleton (This Numeral)
 
 langDimensions :: Lang -> [Some Dimension]
 langDimensions AR = ARDimensions.allDimensions
+langDimensions BG = BGDimensions.allDimensions
 langDimensions CS = CSDimensions.allDimensions
 langDimensions DA = DADimensions.allDimensions
 langDimensions DE = DEDimensions.allDimensions
@@ -88,9 +92,11 @@ langDimensions FR = FRDimensions.allDimensions
 langDimensions GA = GADimensions.allDimensions
 langDimensions HE = HEDimensions.allDimensions
 langDimensions HR = HRDimensions.allDimensions
+langDimensions HU = HUDimensions.allDimensions
 langDimensions ID = IDDimensions.allDimensions
 langDimensions IT = ITDimensions.allDimensions
 langDimensions JA = JADimensions.allDimensions
+langDimensions KA = KADimensions.allDimensions
 langDimensions KO = KODimensions.allDimensions
 langDimensions MY = MYDimensions.allDimensions
 langDimensions NB = NBDimensions.allDimensions

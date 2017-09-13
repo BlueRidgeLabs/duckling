@@ -13,17 +13,17 @@
 module Duckling.Time.PT.Rules
   ( rules ) where
 
-import qualified Data.Text as Text
 import Prelude
+import qualified Data.Text as Text
 
 import Duckling.Dimensions.Types
 import Duckling.Numeral.Helpers (parseInt)
 import Duckling.Regex.Types
 import Duckling.Time.Helpers
 import Duckling.Time.Types (TimeData (..))
+import Duckling.Types
 import qualified Duckling.Time.Types as TTime
 import qualified Duckling.TimeGrain.Types as TG
-import Duckling.Types
 
 ruleNamedday :: Rule
 ruleNamedday = Rule
@@ -38,7 +38,7 @@ ruleSHourmintimeofday :: Rule
 ruleSHourmintimeofday = Rule
   { name = "às <hour-min>(time-of-day)"
   , pattern =
-    [ regex "(\x00e0|a)s?"
+    [ regex "(à|a)s?"
     , Predicate isATimeOfDay
     , regex "horas?"
     ]
@@ -51,7 +51,7 @@ ruleTheDayAfterTomorrow :: Rule
 ruleTheDayAfterTomorrow = Rule
   { name = "the day after tomorrow"
   , pattern =
-    [ regex "depois de amanh(\x00e3|a)"
+    [ regex "depois de amanh(ã|a)"
     ]
   , prod = \_ -> tt $ cycleNth TG.Day 2
   }
@@ -69,7 +69,7 @@ ruleNamedday2 :: Rule
 ruleNamedday2 = Rule
   { name = "named-day"
   , pattern =
-    [ regex "ter(\x00e7|c)a((\\s|\\-)feira)?|ter\\.?"
+    [ regex "ter(ç|c)a((\\s|\\-)feira)?|ter\\.?"
     ]
   , prod = \_ -> tt $ dayOfWeek 2
   }
@@ -99,13 +99,12 @@ ruleIntersectByDaOrDe :: Rule
 ruleIntersectByDaOrDe = Rule
   { name = "intersect by `da` or `de`"
   , pattern =
-    [ Predicate isNotLatent
+    [ dimension Time
     , regex "d[ae]"
     , Predicate isNotLatent
     ]
   , prod = \tokens -> case tokens of
-      (Token Time td1:_:Token Time td2:_) ->
-        Token Time <$> intersect td1 td2
+      (Token Time td1:_:Token Time td2:_) -> Token Time <$> intersect td1 td2
       _ -> Nothing
   }
 
@@ -128,12 +127,11 @@ ruleLastTime :: Rule
 ruleLastTime = Rule
   { name = "last <time>"
   , pattern =
-    [ regex "(\x00fa|u)ltim[ao]s?"
+    [ regex "(ú|u)ltim[ao]s?"
     , dimension Time
     ]
   , prod = \tokens -> case tokens of
-      (_:Token Time td:_) ->
-        tt $ predNth (-1) False td
+      (_:Token Time td:_) -> tt $ predNth (-1) False td
       _ -> Nothing
   }
 
@@ -141,7 +139,7 @@ ruleNamedday6 :: Rule
 ruleNamedday6 = Rule
   { name = "named-day"
   , pattern =
-    [ regex "s(\x00e1|a)bado|s(\x00e1|a)b\\.?"
+    [ regex "s(á|a)bado|s(á|a)b\\.?"
     ]
   , prod = \_ -> tt $ dayOfWeek 6
   }
@@ -188,7 +186,7 @@ ruleDayOfMonthSt = Rule
   , pattern =
     [ regex "primeiro|um|1o"
     ]
-  , prod = \_ -> tt $ dayOfMonth 1
+  , prod = \_ -> tt . mkLatent $ dayOfMonth 1
   }
 
 ruleNow :: Rule
@@ -242,7 +240,7 @@ ruleProximoCycle :: Rule
 ruleProximoCycle = Rule
   { name = "proximo <cycle> "
   , pattern =
-    [ regex "pr(\x00f3|o)xim(o|a)s?"
+    [ regex "pr(ó|o)xim(o|a)s?"
     , dimension TimeGrain
     ]
   , prod = \tokens -> case tokens of
@@ -282,7 +280,7 @@ ruleSHourminTimeofday :: Rule
 ruleSHourminTimeofday = Rule
   { name = "às <hour-min> <time-of-day>"
   , pattern =
-    [ regex "(\x00e0|a)s"
+    [ regex "(à|a)s"
     , Predicate isNotLatent
     , regex "da"
     , Predicate isATimeOfDay
@@ -345,7 +343,7 @@ ruleProximasNCycle :: Rule
 ruleProximasNCycle = Rule
   { name = "proximas n <cycle>"
   , pattern =
-    [ regex "pr(\x00f3|o)xim(o|a)s?"
+    [ regex "pr(ó|o)xim(o|a)s?"
     , Predicate $ isIntegerBetween 2 9999
     , dimension TimeGrain
     ]
@@ -360,7 +358,7 @@ ruleThisnextDayofweek :: Rule
 ruleThisnextDayofweek = Rule
   { name = "this|next <day-of-week>"
   , pattern =
-    [ regex "es[ts][ae]|pr(\x00f3|o)xim[ao]"
+    [ regex "es[ts][ae]|pr(ó|o)xim[ao]"
     , Predicate isADayOfWeek
     ]
   , prod = \tokens -> case tokens of
@@ -415,7 +413,7 @@ ruleIntegerParaAsHourofdayAsRelativeMinutes = Rule
   { name = "<integer> para as <hour-of-day> (as relative minutes)"
   , pattern =
     [ Predicate $ isIntegerBetween 1 59
-    , regex "para ((o|a|\x00e0)s?)?"
+    , regex "para ((o|a|à)s?)?"
     , Predicate isAnHourOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -466,7 +464,7 @@ ruleIntegerParaAsHourofdayAsRelativeMinutes2 = Rule
   , pattern =
     [ Predicate $ isIntegerBetween 1 59
     , regex "min\\.?(uto)?s?"
-    , regex "para ((o|a|\x00e0)s?)?"
+    , regex "para ((o|a|à)s?)?"
     , Predicate isAnHourOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -505,7 +503,7 @@ ruleQuarterParaAsHourofdayAsRelativeMinutes :: Rule
 ruleQuarterParaAsHourofdayAsRelativeMinutes = Rule
   { name = "quinze para as <hour-of-day> (as relative minutes)"
   , pattern =
-    [ regex "quinze para ((o|a|\x00e0)s?)?"
+    [ regex "quinze para ((o|a|à)s?)?"
     , Predicate isAnHourOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -541,7 +539,7 @@ ruleHalfParaAsHourofdayAsRelativeMinutes :: Rule
 ruleHalfParaAsHourofdayAsRelativeMinutes = Rule
   { name = "half para as <hour-of-day> (as relative minutes)"
   , pattern =
-    [ regex "(meia|trinta) para ((o|a|\x00e0)s?)?"
+    [ regex "(meia|trinta) para ((o|a|à)s?)?"
     , Predicate isAnHourOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -577,7 +575,7 @@ ruleThreeQuarterParaAsHourofdayAsRelativeMinutes :: Rule
 ruleThreeQuarterParaAsHourofdayAsRelativeMinutes = Rule
   { name = "3/4 para as <hour-of-day> (as relative minutes)"
   , pattern =
-    [ regex "quarenta e cinco para ((o|a|\x00e0)s?)?"
+    [ regex "quarenta e cinco para ((o|a|à)s?)?"
     , Predicate isAnHourOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -633,7 +631,7 @@ ruleNamedmonth3 :: Rule
 ruleNamedmonth3 = Rule
   { name = "named-month"
   , pattern =
-    [ regex "mar(\x00e7|c)o|mar\\.?"
+    [ regex "mar(ç|c)o|mar\\.?"
     ]
   , prod = \_ -> tt $ month 3
   }
@@ -642,7 +640,7 @@ ruleDepoisDasTimeofday :: Rule
 ruleDepoisDasTimeofday = Rule
   { name = "depois das <time-of-day>"
   , pattern =
-    [ regex "(depois|ap(\x00f3|o)s) d?((a|\x00e1|\x00e0)[so]?|os?)"
+    [ regex "(depois|ap(ó|o)s) d?((a|á|à)[so]?|os?)"
     , dimension Time
     ]
   , prod = \tokens -> case tokens of
@@ -705,7 +703,7 @@ ruleDimTimeDaManha = Rule
   { name = "<dim time> da manha"
   , pattern =
     [ Predicate $ isGrainFinerThan TG.Year
-    , regex "(da|na|pela) manh(\x00e3|a)"
+    , regex "(da|na|pela) manh(ã|a)"
     ]
   , prod = \tokens -> case tokens of
       (Token Time td:_) -> do
@@ -721,7 +719,7 @@ ruleNCycleProximoqueVem = Rule
   , pattern =
     [ Predicate $ isIntegerBetween 2 9999
     , dimension TimeGrain
-    , regex "(pr(\x00f3|o)xim(o|a)s?|que vem?|seguintes?)"
+    , regex "(pr(ó|o)xim(o|a)s?|que vem?|seguintes?)"
     ]
   , prod = \tokens -> case tokens of
       (token:Token TimeGrain grain:_) -> do
@@ -790,7 +788,7 @@ ruleUltimoTime :: Rule
 ruleUltimoTime = Rule
   { name = "ultimo <time>"
   , pattern =
-    [ regex "(u|\x00fa)ltimo"
+    [ regex "(u|ú)ltimo"
     , dimension Time
     ]
   , prod = \tokens -> case tokens of
@@ -837,7 +835,7 @@ ruleSeason :: Rule
 ruleSeason = Rule
   { name = "season"
   , pattern =
-    [ regex "ver(\x00e3|a)o"
+    [ regex "ver(ã|a)o"
     ]
   , prod = \_ ->
       let from = monthDay 6 21
@@ -849,7 +847,7 @@ ruleRightNow :: Rule
 ruleRightNow = Rule
   { name = "right now"
   , pattern =
-    [ regex "agora|j(\x00e1|a)|(nesse|neste) instante"
+    [ regex "agora|j(á|a)|(nesse|neste) instante"
     ]
   , prod = \_ -> tt $ cycleNth TG.Second 0
   }
@@ -900,7 +898,7 @@ ruleNamedmonthnameddayNext = Rule
   { name = "<named-month|named-day> next"
   , pattern =
     [ dimension Time
-    , regex "(da pr(o|\x00f3)xima semana)|(da semana)? que vem"
+    , regex "(da pr(o|ó)xima semana)|(da semana)? que vem"
     ]
   , prod = \tokens -> case tokens of
       (Token Time td:_) ->
@@ -978,7 +976,7 @@ ruleSTimeofday :: Rule
 ruleSTimeofday = Rule
   { name = "às <time-of-day>"
   , pattern =
-    [ regex "(\x00e0|a)s?"
+    [ regex "(à|a)s?"
     , Predicate isATimeOfDay
     ]
   , prod = \tokens -> case tokens of
@@ -1017,10 +1015,7 @@ ruleWeekend = Rule
   , pattern =
     [ regex "final de semana|fim de semana|fds"
     ]
-  , prod = \_ -> do
-      from <- intersect (dayOfWeek 5) (hour False 18)
-      to <- intersect (dayOfWeek 1) (hour False 0)
-      Token Time <$> interval TTime.Open from to
+  , prod = \_ -> tt weekend
   }
 
 ruleDayofweekSHourmin :: Rule
@@ -1028,7 +1023,7 @@ ruleDayofweekSHourmin = Rule
   { name = "<day-of-week> às <hour-min>"
   , pattern =
     [ Predicate isATimeOfDay
-    , regex "(\x00e0|a)s"
+    , regex "(à|a)s"
     , Predicate isNotLatent
     , regex "da|pela"
     , Predicate isATimeOfDay
@@ -1065,7 +1060,7 @@ ruleNextTime :: Rule
 ruleNextTime = Rule
   { name = "next <time>"
   , pattern =
-    [ regex "(d[ao]) pr(\x00f3|o)xim[ao]s?|que vem"
+    [ regex "(d[ao]) pr(ó|o)xim[ao]s?|que vem"
     , Predicate isNotLatent
     ]
   , prod = \tokens -> case tokens of
@@ -1092,7 +1087,7 @@ ruleVesperaDeAnoNovo :: Rule
 ruleVesperaDeAnoNovo = Rule
   { name = "vespera de ano novo"
   , pattern =
-    [ regex "v(\x00e9|e)spera d[eo] ano[\\s\\-]novo"
+    [ regex "v(é|e)spera d[eo] ano[\\s\\-]novo"
     ]
   , prod = \_ -> tt $ monthDay 12 31
   }
@@ -1186,7 +1181,7 @@ ruleMorning :: Rule
 ruleMorning = Rule
   { name = "morning"
   , pattern =
-    [ regex "manh(\x00e3|a)"
+    [ regex "manh(ã|a)"
     ]
   , prod = \_ ->
       let from = hour False 4
@@ -1225,7 +1220,7 @@ ruleProclamaoDaRepblica :: Rule
 ruleProclamaoDaRepblica = Rule
   { name = "Proclamação da República"
   , pattern =
-    [ regex "proclama(c|\x00e7)(a|\x00e3)o da rep(\x00fa|u)blica"
+    [ regex "proclama(c|ç)(a|ã)o da rep(ú|u)blica"
     ]
   , prod = \_ -> tt $ monthDay 11 15
   }
@@ -1279,7 +1274,7 @@ ruleNCycleAtras = Rule
   , pattern =
     [ Predicate $ isIntegerBetween 2 9999
     , dimension TimeGrain
-    , regex "atr(a|\x00e1)s"
+    , regex "atr(a|á)s"
     ]
   , prod = \tokens -> case tokens of
       (token:Token TimeGrain grain:_) -> do
@@ -1431,7 +1426,7 @@ ruleAntesDasTimeofday :: Rule
 ruleAntesDasTimeofday = Rule
   { name = "antes das <time-of-day>"
   , pattern =
-    [ regex "(antes|at(e|\x00e9)|n(a|\x00e3)o mais que) (d?(o|a|\x00e0)s?)?"
+    [ regex "(antes|at(e|é)|n(a|ã)o mais que) (d?(o|a|à)s?)?"
     , dimension Time
     ]
   , prod = \tokens -> case tokens of
@@ -1445,7 +1440,7 @@ ruleNProximasCycle = Rule
   { name = "n proximas <cycle>"
   , pattern =
     [ Predicate $ isIntegerBetween 2 9999
-    , regex "pr(\x00f3|o)xim(o|a)s?"
+    , regex "pr(ó|o)xim(o|a)s?"
     , dimension TimeGrain
     ]
   , prod = \tokens -> case tokens of
@@ -1483,7 +1478,7 @@ ruleIndependecia :: Rule
 ruleIndependecia = Rule
   { name = "Independecia"
   , pattern =
-    [ regex "independ(\x00ea|e)ncia"
+    [ regex "independ(ê|e)ncia"
     ]
   , prod = \_ -> tt $ monthDay 9 7
   }
@@ -1501,7 +1496,7 @@ ruleTomorrow :: Rule
 ruleTomorrow = Rule
   { name = "tomorrow"
   , pattern =
-    [ regex "amanh(\x00e3|a)"
+    [ regex "amanh(ã|a)"
     ]
   , prod = \_ -> tt $ cycleNth TG.Day 1
   }

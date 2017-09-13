@@ -108,7 +108,7 @@ ruleAbsorbCommaTOD = Rule
 
 instants :: [(Text, String, TG.Grain, Int)]
 instants =
-  [ ("now", "((just|right)\\s*)?now|immediately", TG.Second, 0)
+  [ ("right now", "((just|right)\\s*)now|immediately", TG.Second, 0)
   , ("today", "todays?|(at this time)", TG.Day, 0)
   , ("tomorrow", "(tmrw?|tomm?or?rows?)", TG.Day, 1)
   , ("yesterday", "yesterdays?", TG.Day, - 1)
@@ -124,6 +124,15 @@ ruleInstants = map go instants
       , pattern = [regex regexPattern]
       , prod = \_ -> tt $ cycleNth grain n
       }
+
+ruleNow :: Rule
+ruleNow = Rule
+  { name = "now"
+  , pattern =
+    [ regex "now"
+    ]
+  , prod = \_ -> tt now
+  }
 
 ruleNextDOW :: Rule
 ruleNextDOW = Rule
@@ -919,20 +928,39 @@ ruleIntervalMonthDDDD = Rule
   { name = "<month> dd-dd (interval)"
   , pattern =
     [ Predicate isAMonth
-    , regex "(3[01]|[12]\\d|0?[1-9])"
+    , Predicate isDOMValue
     , regex "\\-|to|th?ru|through|(un)?til(l)?"
-    , regex "(3[01]|[12]\\d|0?[1-9])"
+    , Predicate isDOMValue
     ]
   , prod = \tokens -> case tokens of
       (Token Time td:
-       Token RegexMatch (GroupMatch (d1:_)):
+       token1:
        _:
-       Token RegexMatch (GroupMatch (d2:_)):
+       token2:
        _) -> do
-        dd1 <- parseInt d1
-        dd2 <- parseInt d2
-        dom1 <- intersect (dayOfMonth dd1) td
-        dom2 <- intersect (dayOfMonth dd2) td
+        dom1 <- intersectDOM td token1
+        dom2 <- intersectDOM td token2
+        Token Time <$> interval TTime.Closed dom1 dom2
+      _ -> Nothing
+  }
+
+ruleIntervalDDDDMonth :: Rule
+ruleIntervalDDDDMonth = Rule
+  { name = "dd-dd <month> (interval)"
+  , pattern =
+    [ Predicate isDOMValue
+    , regex "\\-|to|th?ru|through|(un)?til(l)?"
+    , Predicate isDOMValue
+    , Predicate isAMonth
+    ]
+  , prod = \tokens -> case tokens of
+      (token1:
+       _:
+       token2:
+       Token Time td:
+       _) -> do
+        dom1 <- intersectDOM td token1
+        dom2 <- intersectDOM td token2
         Token Time <$> interval TTime.Closed dom1 dom2
       _ -> Nothing
   }
@@ -943,21 +971,42 @@ ruleIntervalFromMonthDDDD = Rule
   , pattern =
     [ regex "from"
     , Predicate isAMonth
-    , regex "(3[01]|[12]\\d|0?[1-9])"
+    , Predicate isDOMValue
     , regex "\\-|to|th?ru|through|(un)?til(l)?"
-    , regex "(3[01]|[12]\\d|0?[1-9])"
+    , Predicate isDOMValue
     ]
   , prod = \tokens -> case tokens of
       (_:
        Token Time td:
-       Token RegexMatch (GroupMatch (d1:_)):
+       token1:
        _:
-       Token RegexMatch (GroupMatch (d2:_)):
+       token2:
        _) -> do
-        dd1 <- parseInt d1
-        dd2 <- parseInt d2
-        dom1 <- intersect (dayOfMonth dd1) td
-        dom2 <- intersect (dayOfMonth dd2) td
+        dom1 <- intersectDOM td token1
+        dom2 <- intersectDOM td token2
+        Token Time <$> interval TTime.Closed dom1 dom2
+      _ -> Nothing
+  }
+
+ruleIntervalFromDDDDMonth :: Rule
+ruleIntervalFromDDDDMonth = Rule
+  { name = "from <day-of-month> (ordinal or number) to <day-of-month> (ordinal or number) <named-month> (interval)"
+  , pattern =
+    [ regex "from"
+    , Predicate isDOMValue
+    , regex "\\-|to|th?ru|through|(un)?til(l)?"
+    , Predicate isDOMValue
+    , Predicate isAMonth
+    ]
+  , prod = \tokens -> case tokens of
+      (_:
+       token1:
+       _:
+       token2:
+       Token Time td:
+       _) -> do
+        dom1 <- intersectDOM td token1
+        dom2 <- intersectDOM td token2
         Token Time <$> interval TTime.Closed dom1 dom2
       _ -> Nothing
   }
@@ -1236,19 +1285,15 @@ moreUSHolidays =
     )
   , ( "Father's Day" -- Third Sunday of June
     , "father'?s?'? day"
-    , 2, 7, 6
+    , 3, 7, 6
     )
   , ( "Mother's Day" -- Second Sunday of May
     , "mother'?s?'? day"
-    , 1, 7, 5
+    , 2, 7, 5
     )
   , ( "Thanksgiving Day" -- Fourth Thursday of November
     , "thanks?giving( day)?"
     , 4, 4, 11
-    )
-  , ( "Black Friday" -- Fourth Friday of November
-    , "black frid?day"
-    , 4, 5, 11
     )
   ,  ( "Labor Day" -- First Monday of September
      , "labor day"
@@ -1264,6 +1309,16 @@ ruleMoreUSHolidays = map go moreUSHolidays
       , pattern = [regex regexPattern]
       , prod = \_ -> tt $ nthDOWOfMonth n dow m
       }
+
+-- The day after Thanksgiving (not always the fourth Friday of November)
+ruleBlackFriday :: Rule
+ruleBlackFriday = Rule
+  { name = "black friday"
+  , pattern =
+    [ regex "black frid?day"
+    ]
+  , prod = \_ -> tt . cycleNthAfter False TG.Day 1 $ nthDOWOfMonth 4 4 11
+  }
 
 -- Last Monday of May
 ruleMemorialDay :: Rule
@@ -1555,6 +1610,21 @@ ruleDurationAfterBeforeTime = Rule
       _ -> Nothing
   }
 
+ruleIntervalForDurationFrom :: Rule
+ruleIntervalForDurationFrom = Rule
+  { name = "for <duration> from <time>"
+  , pattern =
+    [ regex "for"
+    , dimension Duration
+    , regex "(from|starting|beginning|after|starting from)"
+    , dimension Time
+    ]
+  , prod = \tokens -> case tokens of
+      (_:Token Duration dd:_:Token Time td1:_) ->
+        Token Time <$> interval TTime.Open td1 (durationAfter dd td1)
+      _ -> Nothing
+}
+
 ruleTimezone :: Rule
 ruleTimezone = Rule
   { name = "<time> timezone"
@@ -1637,7 +1707,9 @@ rules =
   , ruleTODPrecision
   , rulePrecisionTOD
   , ruleIntervalFromMonthDDDD
+  , ruleIntervalFromDDDDMonth
   , ruleIntervalMonthDDDD
+  , ruleIntervalDDDDMonth
   , ruleIntervalDash
   , ruleIntervalFrom
   , ruleIntervalBetween
@@ -1668,9 +1740,12 @@ rules =
   , ruleDurationInWithinAfter
   , ruleDurationHenceAgo
   , ruleDurationAfterBeforeTime
+  , ruleIntervalForDurationFrom
   , ruleInNumeral
   , ruleTimezone
   , rulePartOfMonth
+  , ruleNow
+  , ruleBlackFriday
   ]
   ++ ruleInstants
   ++ ruleDaysOfWeek
