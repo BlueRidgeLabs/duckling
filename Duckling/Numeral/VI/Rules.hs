@@ -10,20 +10,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Duckling.Numeral.VI.Rules
-  ( rules ) where
+  ( rules
+  ) where
 
-import qualified Data.HashMap.Strict as HashMap
 import Data.Maybe
-import qualified Data.Text as Text
-import Prelude
 import Data.String
+import Prelude
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Text as Text
 
 import Duckling.Dimensions.Types
 import Duckling.Numeral.Helpers
 import Duckling.Numeral.Types (NumeralData (..))
-import qualified Duckling.Numeral.Types as TNumeral
 import Duckling.Regex.Types
 import Duckling.Types
+import qualified Duckling.Numeral.Types as TNumeral
 
 powersOfTenMap :: HashMap.HashMap Text.Text (Double, Int)
 powersOfTenMap = HashMap.fromList
@@ -33,7 +34,7 @@ powersOfTenMap = HashMap.fromList
   , ( "nghìn", (1e3, 3) )
   , ( "triệ",  (1e6, 6) )
   , ( "triệu", (1e6, 6) )
-  , ( "t",          (1e9, 9) )
+  , ( "t",     (1e9, 9) )
   , ( "tỷ",    (1e9, 9) )
   ]
 
@@ -64,19 +65,6 @@ ruleIntersectWithAnd = Rule
        _:
        Token Numeral (NumeralData {TNumeral.value = val2}):
        _) | (10 ** fromIntegral g) > val2 -> double $ val1 + val2
-      _ -> Nothing
-  }
-
-ruleIntegerNumeric :: Rule
-ruleIntegerNumeric = Rule
-  { name = "integer (numeric)"
-  , pattern =
-    [ regex "(\\d{1,18})"
-    ]
-  , prod = \tokens -> case tokens of
-      (Token RegexMatch (GroupMatch (match:_)):_) -> do
-        v <- parseInt match
-        integer $ toInteger v
       _ -> Nothing
   }
 
@@ -112,7 +100,7 @@ ruleDecimalWithThousandsSeparator = Rule
     ]
   , prod = \tokens -> case tokens of
       (Token RegexMatch (GroupMatch (match:_)):_) ->
-        parseDouble (Text.replace (Text.singleton ',') Text.empty match) >>= double
+        parseDouble (Text.replace "," Text.empty match) >>= double
       _ -> Nothing
   }
 
@@ -322,7 +310,7 @@ ruleIntegerWithThousandsSeparator = Rule
     ]
   , prod = \tokens -> case tokens of
       (Token RegexMatch (GroupMatch (match:_)):
-       _) -> let fmt = Text.replace (Text.singleton ',') Text.empty match
+       _) -> let fmt = Text.replace "," Text.empty match
         in parseDouble fmt >>= double
       _ -> Nothing
   }
@@ -334,7 +322,6 @@ rules =
   , ruleInteger
   , ruleInteger2
   , ruleInteger3
-  , ruleIntegerNumeric
   , ruleIntegerWithThousandsSeparator
   , ruleIntersect
   , ruleIntersectWithAnd

@@ -11,7 +11,8 @@
 {-# LANGUAGE NoRebindableSyntax #-}
 
 module Duckling.Numeral.BG.Rules
-  ( rules ) where
+  ( rules
+  ) where
 
 import Data.HashMap.Strict (HashMap)
 import Data.Maybe
@@ -27,19 +28,6 @@ import Duckling.Numeral.Types (NumeralData (..))
 import Duckling.Regex.Types
 import Duckling.Types
 import qualified Duckling.Numeral.Types as TNumeral
-
-ruleIntegers :: Rule
-ruleIntegers = Rule
-  { name = "integer (numeric)"
-  , pattern =
-    [ regex "(\\d{1,18})"
-    ]
-  , prod = \tokens -> case tokens of
-      (Token RegexMatch (GroupMatch (match:_)):_) -> do
-        v <- parseInt match
-        integer $ toInteger v
-      _ -> Nothing
-  }
 
 zeroNineteenMap :: HashMap Text Integer
 zeroNineteenMap = HashMap.fromList
@@ -195,20 +183,6 @@ ruleDecimals = Rule
       _ -> Nothing
   }
 
-ruleFractions :: Rule
-ruleFractions = Rule
-  { name = "fractional number"
-  , pattern =
-    [ regex "(\\d+)/(\\d+)"
-    ]
-  , prod = \tokens -> case tokens of
-      (Token RegexMatch (GroupMatch (numerator:denominator:_)):_) -> do
-        n <- parseDecimal False numerator
-        d <- parseDecimal False denominator
-        divide n d
-      _ -> Nothing
-  }
-
 ruleCommas :: Rule
 ruleCommas = Rule
   { name = "comma-separated numbers"
@@ -217,7 +191,7 @@ ruleCommas = Rule
     ]
   , prod = \tokens -> case tokens of
       (Token RegexMatch (GroupMatch (match:_)):_) ->
-        parseDouble (Text.replace (Text.singleton ',') Text.empty match) >>= double
+        parseDouble (Text.replace "," Text.empty match) >>= double
       _ -> Nothing
   }
 
@@ -257,8 +231,7 @@ ruleNegative = Rule
 
 rules :: [Rule]
 rules =
-  [ ruleIntegers
-  , ruleToNineteen
+  [ ruleToNineteen
   , ruleTens
   , rulePowersOfTen
   , ruleCompositeTens
@@ -266,7 +239,6 @@ rules =
   , ruleCompositeHundreds
   , ruleDotSpelledOut
   , ruleDecimals
-  , ruleFractions
   , ruleCommas
   , ruleSuffixes
   , ruleNegative

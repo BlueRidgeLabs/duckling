@@ -17,12 +17,14 @@ import qualified Duckling.Numeral.BG.Tests as BG
 import qualified Duckling.Numeral.CS.Tests as CS
 import qualified Duckling.Numeral.DA.Tests as DA
 import qualified Duckling.Numeral.DE.Tests as DE
+import qualified Duckling.Numeral.EL.Tests as EL
 import qualified Duckling.Numeral.EN.Tests as EN
 import qualified Duckling.Numeral.ES.Tests as ES
 import qualified Duckling.Numeral.ET.Tests as ET
 import qualified Duckling.Numeral.FR.Tests as FR
 import qualified Duckling.Numeral.GA.Tests as GA
 import qualified Duckling.Numeral.HE.Tests as HE
+import qualified Duckling.Numeral.HI.Tests as HI
 import qualified Duckling.Numeral.HR.Tests as HR
 import qualified Duckling.Numeral.HU.Tests as HU
 import qualified Duckling.Numeral.ID.Tests as ID
@@ -50,12 +52,14 @@ tests = testGroup "Numeral Tests"
   , CS.tests
   , DA.tests
   , DE.tests
+  , EL.tests
   , EN.tests
   , ES.tests
   , ET.tests
   , FR.tests
   , GA.tests
   , HE.tests
+  , HI.tests
   , HR.tests
   , HU.tests
   , ID.tests

@@ -9,10 +9,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Duckling.AmountOfMoney.EN.Corpus
-  ( corpus ) where
+  ( corpus
+  ) where
 
-import Prelude
 import Data.String
+import Prelude
 
 import Duckling.AmountOfMoney.Types
 import Duckling.Testing.Types
@@ -144,6 +145,21 @@ allExamples = concat
              , "twenty ringgit 43 sens"
              , "20 ringgit 43"
              , "twenty ringgit and 43"
+             ]
+  , examples (simple Dinar 10)
+             [ "10 dinars"
+             ]
+  , examples (simple ILS 10)
+             [ "ten shekels"
+             , "10 ILS"
+             ]
+  , examples (simple Riyal 10)
+             [ "ten riyals"
+             , "10 riyals"
+             ]
+  , examples (simple Rial 10)
+             [ "ten rials"
+             , "10 rials"
              ]
   , examples (between Dollar (10, 20))
              [ "between 10 and 20 dollars"

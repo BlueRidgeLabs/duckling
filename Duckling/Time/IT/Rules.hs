@@ -13,7 +13,6 @@
 module Duckling.Time.IT.Rules
   ( rules ) where
 
-import Control.Monad (liftM2)
 import Data.Text (Text)
 import Prelude
 import qualified Data.Text as Text
@@ -514,7 +513,7 @@ ruleHourofdayIntegerAsRelativeMinutes :: Rule
 ruleHourofdayIntegerAsRelativeMinutes = Rule
   { name = "<hour-of-day> <integer> (as relative minutes)"
   , pattern =
-    [ Predicate isAnHourOfDay
+    [ Predicate $ and . sequence [isNotLatent, isAnHourOfDay]
     , Predicate $ isIntegerBetween 1 59
     ]
   , prod = \tokens -> case tokens of
@@ -576,7 +575,7 @@ ruleHhRelativeminutesDelPomeriggiotimeofday :: Rule
 ruleHhRelativeminutesDelPomeriggiotimeofday = Rule
   { name = "hh <relative-minutes> del pomeriggio(time-of-day)"
   , pattern =
-    [ Predicate isAnHourOfDay
+    [ Predicate $ and . sequence [isNotLatent, isAnHourOfDay]
     , Predicate $ isIntegerBetween 1 59
     , regex "d(i|el(la)?) (pomeriggio|(sta)?(sera|notte))"
     ]
@@ -609,11 +608,12 @@ ruleHhIntegerminutesDelPomeriggiotimeofday2 = Rule
         tt $ hourMinute False h n
       _ -> Nothing
   }
+
 ruleHourofdayIntegerMinutes :: Rule
 ruleHourofdayIntegerMinutes = Rule
   { name = "<hour-of-day> <integer> minutes"
   , pattern =
-    [ Predicate isAnHourOfDay
+    [ Predicate $ and . sequence [isNotLatent, isAnHourOfDay]
     , Predicate $ isIntegerBetween 1 59
     , regex "min(ut[oi]|\\.)?"
     ]
@@ -1110,28 +1110,19 @@ ruleNextCycle = Rule
       _ -> Nothing
   }
 
-daysOfWeek :: [(Text, String)]
-daysOfWeek =
+ruleDaysOfWeek :: [Rule]
+ruleDaysOfWeek = mkRuleDaysOfWeek
   [ ( "Lunedi"   , "luned(i|ì)|lun?\\.?"   )
   , ( "Martedi"  , "marted(i|ì)|mar\\.?"   )
   , ( "Mercoledi", "mercoled(i|ì)|mer\\.?" )
   , ( "Giovedi"  , "gioved(i|ì)|gio\\.?"   )
   , ( "Venerdi"  , "venerd(i|ì)|ven\\.?"   )
-  , ( "Sabato"   , "sabato|sab\\.?"             )
-  , ( "Domenica" , "domenica|dom\\.?"           )
+  , ( "Sabato"   , "sabato|sab\\.?"        )
+  , ( "Domenica" , "domenica|dom\\.?"      )
   ]
 
-ruleDaysOfWeek :: [Rule]
-ruleDaysOfWeek = zipWith go daysOfWeek [1..7]
-  where
-    go (name, regexPattern) i = Rule
-      { name = name
-      , pattern = [regex regexPattern]
-      , prod = \_ -> tt $ dayOfWeek i
-      }
-
-months :: [(Text, String)]
-months =
+ruleMonths :: [Rule]
+ruleMonths = mkRuleMonths
   [ ( "Gennaio"  , "gennaio|genn?\\.?"   )
   , ( "Febbraio" , "febbraio|febb?\\.?"  )
   , ( "Marzo"    , "marzo|mar\\.?"       )
@@ -1145,15 +1136,6 @@ months =
   , ( "Novembre" , "novembre|nov\\.?"    )
   , ( "Dicembre" , "dicembre|dic\\.?"    )
   ]
-
-ruleMonths :: [Rule]
-ruleMonths = zipWith go months [1..12]
-  where
-    go (name, regexPattern) i = Rule
-      { name = name
-      , pattern = [regex regexPattern]
-      , prod = \_ -> tt $ month i
-      }
 
 ruleTheCycleOfTime :: Rule
 ruleTheCycleOfTime = Rule
@@ -2242,7 +2224,7 @@ ruleTimezone :: Rule
 ruleTimezone = Rule
   { name = "<time> timezone"
   , pattern =
-    [ Predicate $ liftM2 (&&) isATimeOfDay isNotLatent
+    [ Predicate $ and . sequence [isNotLatent, isATimeOfDay]
     , regex "\\b(YEKT|YEKST|YAKT|YAKST|WITA|WIT|WIB|WGT|WGST|WFT|WET|WEST|WAT|WAST|VUT|VLAT|VLAST|VET|UZT|UYT|UYST|UTC|ULAT|TVT|TMT|TLT|TKT|TJT|TFT|TAHT|SST|SRT|SGT|SCT|SBT|SAST|SAMT|RET|PYT|PYST|PWT|PST|PONT|PMST|PMDT|PKT|PHT|PHOT|PGT|PETT|PETST|PET|PDT|OMST|OMSST|NZST|NZDT|NUT|NST|NPT|NOVT|NOVST|NFT|NDT|NCT|MYT|MVT|MUT|MST|MSK|MSD|MMT|MHT|MDT|MAWT|MART|MAGT|MAGST|LINT|LHST|LHDT|KUYT|KST|KRAT|KRAST|KGT|JST|IST|IRST|IRKT|IRKST|IRDT|IOT|IDT|ICT|HOVT|HKT|GYT|GST|GMT|GILT|GFT|GET|GAMT|GALT|FNT|FKT|FKST|FJT|FJST|EST|EGT|EGST|EET|EEST|EDT|ECT|EAT|EAST|EASST|DAVT|ChST|CXT|CVT|CST|COT|CLT|CLST|CKT|CHAST|CHADT|CET|CEST|CDT|CCT|CAT|CAST|BTT|BST|BRT|BRST|BOT|BNT|AZT|AZST|AZOT|AZOST|AWST|AWDT|AST|ART|AQTT|ANAT|ANAST|AMT|AMST|ALMT|AKST|AKDT|AFT|AEST|AEDT|ADT|ACST|ACDT)\\b"
     ]
   , prod = \tokens -> case tokens of

@@ -12,7 +12,6 @@
 module Duckling.Time.VI.Rules
   ( rules ) where
 
-import Control.Monad (liftM2)
 import Prelude
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -39,50 +38,32 @@ ruleTtDng = Rule
   , prod = \_ -> tt $ monthDay 1 1
   }
 
-daysOfWeek :: [(Text, String)]
-daysOfWeek =
-  [ ( "Monday"   , "th(ứ) (2|hai)"                                      )
-  , ( "Tuesday"  , "th(ứ) (3|ba)"                                       )
-  , ( "Wednesday", "th(ứ) 4|th(ứ) b(ố)n|th(ứ) t(ư)" )
-  , ( "Thursday" , "th(ứ) (5|n(ă)m)"                               )
-  , ( "Friday"   , "th(ứ) 6|th(ứ) s(á)u"                      )
-  , ( "Saturday" , "th(ứ) (7|b((ả)|(ẩ))y)"                    )
-  , ( "Sunday"   , "ch(ủ) nh(ậ)t"                                  )
-  ]
-
 ruleDaysOfWeek :: [Rule]
-ruleDaysOfWeek = zipWith go daysOfWeek [1..7]
-  where
-    go (name, regexPattern) i = Rule
-      { name = name
-      , pattern = [regex regexPattern]
-      , prod = \_ -> tt $ dayOfWeek i
-      }
-
-months :: [(Text, String)]
-months =
-  [ ( "January"  , "th(á)ng (gi(ê)ng|m(ộ)t)"         )
-  , ( "February" , "th(á)ng hai"                               )
-  , ( "March"    , "th(á)ng ba"                                )
-  , ( "April"    , "th(á)ng t(ư)|th(á)ng b(ố)n" )
-  , ( "May"      , "th(á)ng n(ă)m"                        )
-  , ( "June"     , "th(á)ng s(á)u"                        )
-  , ( "July"     , "th(á)ng b(ả)y"                        )
-  , ( "August"   , "th(á)ng t(á)m"                        )
-  , ( "September", "th(á)ng ch(í)n"                       )
-  , ( "October"  , "th(á)ng m(ư)(ờ)i"                )
-  , ( "November" , "th(á)ng m(ư)(ờ)i m(ộ)t"     )
-  , ( "December" , "th(á)ng m(ư)(ờ)i hai"            )
+ruleDaysOfWeek = mkRuleDaysOfWeek
+  [ ( "Monday"   , "th(ứ) (2|hai)"                  )
+  , ( "Tuesday"  , "th(ứ) (3|ba)"                   )
+  , ( "Wednesday", "th(ứ) 4|th(ứ) b(ố)n|th(ứ) t(ư)" )
+  , ( "Thursday" , "th(ứ) (5|n(ă)m)"                )
+  , ( "Friday"   , "th(ứ) 6|th(ứ) s(á)u"            )
+  , ( "Saturday" , "th(ứ) (7|b((ả)|(ẩ))y)"          )
+  , ( "Sunday"   , "ch(ủ) nh(ậ)t"                   )
   ]
 
 ruleMonths :: [Rule]
-ruleMonths = zipWith go months [1..12]
-  where
-    go (name, regexPattern) i = Rule
-      { name = name
-      , pattern = [regex regexPattern]
-      , prod = \_ -> tt $ month i
-      }
+ruleMonths = mkRuleMonths
+  [ ( "January"  , "th(á)ng (gi(ê)ng|m(ộ)t)"    )
+  , ( "February" , "th(á)ng hai"                )
+  , ( "March"    , "th(á)ng ba"                 )
+  , ( "April"    , "th(á)ng t(ư)|th(á)ng b(ố)n" )
+  , ( "May"      , "th(á)ng n(ă)m"              )
+  , ( "June"     , "th(á)ng s(á)u"              )
+  , ( "July"     , "th(á)ng b(ả)y"              )
+  , ( "August"   , "th(á)ng t(á)m"              )
+  , ( "September", "th(á)ng ch(í)n"             )
+  , ( "October"  , "th(á)ng m(ư)(ờ)i"           )
+  , ( "November" , "th(á)ng m(ư)(ờ)i m(ộ)t"     )
+  , ( "December" , "th(á)ng m(ư)(ờ)i hai"       )
+  ]
 
 ruleDayofmonthNamedmonth :: Rule
 ruleDayofmonthNamedmonth = Rule
@@ -631,7 +612,7 @@ ruleTimeofdaySngchiuti = Rule
     ]
   , prod = \tokens -> case tokens of
       (Token Time td:Token RegexMatch (GroupMatch (ap:_)):_) ->
-        tt . timeOfDayAMPM td $ Text.toLower ap == "s\225ng"
+        tt $ timeOfDayAMPM (Text.toLower ap == "s\225ng") td
       _ -> Nothing
   }
 
@@ -787,7 +768,7 @@ ruleTimeofdayAmpm = Rule
     ]
   , prod = \tokens -> case tokens of
       (Token Time td:Token RegexMatch (GroupMatch (_:ap:_)):_) ->
-        tt . timeOfDayAMPM td $ Text.toLower ap == "a"
+        tt $ timeOfDayAMPM (Text.toLower ap == "a") td
       _ -> Nothing
   }
 
@@ -859,7 +840,7 @@ ruleTimezone :: Rule
 ruleTimezone = Rule
   { name = "<time> timezone"
   , pattern =
-    [ Predicate $ liftM2 (&&) (isGrainFinerThan TG.Day) isNotLatent
+    [ Predicate $ and . sequence [isNotLatent, isGrainFinerThan TG.Day]
     , regex "\\b(YEKT|YEKST|YAKT|YAKST|WITA|WIT|WIB|WGT|WGST|WFT|WET|WEST|WAT|WAST|VUT|VLAT|VLAST|VET|UZT|UYT|UYST|UTC|ULAT|TVT|TMT|TLT|TKT|TJT|TFT|TAHT|SST|SRT|SGT|SCT|SBT|SAST|SAMT|RET|PYT|PYST|PWT|PST|PONT|PMST|PMDT|PKT|PHT|PHOT|PGT|PETT|PETST|PET|PDT|OMST|OMSST|NZST|NZDT|NUT|NST|NPT|NOVT|NOVST|NFT|NDT|NCT|MYT|MVT|MUT|MST|MSK|MSD|MMT|MHT|MDT|MAWT|MART|MAGT|MAGST|LINT|LHST|LHDT|KUYT|KST|KRAT|KRAST|KGT|JST|IST|IRST|IRKT|IRKST|IRDT|IOT|IDT|ICT|HOVT|HKT|GYT|GST|GMT|GILT|GFT|GET|GAMT|GALT|FNT|FKT|FKST|FJT|FJST|EST|EGT|EGST|EET|EEST|EDT|ECT|EAT|EAST|EASST|DAVT|ChST|CXT|CVT|CST|COT|CLT|CLST|CKT|CHAST|CHADT|CET|CEST|CDT|CCT|CAT|CAST|BTT|BST|BRT|BRST|BOT|BNT|AZT|AZST|AZOT|AZOST|AWST|AWDT|AST|ART|AQTT|ANAT|ANAST|AMT|AMST|ALMT|AKST|AKDT|AFT|AEST|AEDT|ADT|ACST|ACDT)\\b"
     ]
   , prod = \tokens -> case tokens of
@@ -906,8 +887,7 @@ ruleHhmmMilitaryAmpm = Rule
        _) -> do
         h <- parseInt hh
         m <- parseInt mm
-        tt . timeOfDayAMPM (hourMinute True h m) $
-          Text.toLower ap == "a"
+        tt . timeOfDayAMPM (Text.toLower ap == "a") $ hourMinute True h m
       _ -> Nothing
   }
 
@@ -924,8 +904,7 @@ ruleHhmmMilitarySngchiuti = Rule
        _) -> do
         h <- parseInt hh
         m <- parseInt mm
-        tt . timeOfDayAMPM (hourMinute True h m) $
-          Text.toLower ap == "s\225ng"
+        tt . timeOfDayAMPM (Text.toLower ap == "s\225ng") $ hourMinute True h m
       _ -> Nothing
   }
 
